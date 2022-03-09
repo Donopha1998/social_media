@@ -16,10 +16,7 @@ const userSchema = mongoose.Schema({
     type: String,
     required: true,
   },
-  friends: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-  }],
+ 
   createdAt: {
     type: Date,
     default: timeIndia,
