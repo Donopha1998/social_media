@@ -83,7 +83,7 @@ const getComments = async (req, res) => {
 // @access  Private
 const getUserComments = async (req, res) => {
   try {
-    const comments = await Comment.find({commentor:req.user.id});
+    const comments = await Comment.find({commentor:req.user.id}).select('-commentor').populate('post','post')
     res.status(200).json({ data: comments });
   } catch (error) {
     res.status(400).json({ msg: "comments do not exist" });

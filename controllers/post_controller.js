@@ -14,7 +14,6 @@ const user = req.user.id
          res.status(201).json({
            id:post.id,
            post: req.body.post,
-           user,
            msg:'post creation success'
          });
     } catch (error) {
@@ -63,7 +62,7 @@ const deletePost = async(req,res)=>{
 // @access  Private
 const getPosts = async(req,res)=>{
   try {
-    const posts = await Posts.find()
+    const posts = await Posts.find().populate('user','name')
     res.status(200).json({data:posts})
   } catch (error) {
     res.status(400).json({msg:'post does not existed'})
@@ -75,8 +74,8 @@ const getPosts = async(req,res)=>{
 // @access  Private
 const getUserPosts = async (req, res) => {
   try {
-    const posts = await Posts.find({user:req.user.id});
-    console.log(req.body.id)
+    const posts = await Posts.find({user:req.user.id}).select('-user')
+    
     res.status(200).json({ data: posts });
   } catch (error) {
     res.status(400).json({ msg: "post does not existed" });
@@ -86,43 +85,66 @@ const getUserPosts = async (req, res) => {
 // @desc    like a post
 // @route   PATCH api/v1/post/like
 // @access  Private
-const likePost = async(req,res)=>{
-  const status= req.body.status
- const post = await Posts.findOne({ _id: req.query.postId });
-try {
-   if(status==1){
-     post.likes +=1
-      post.save()
-     res.status(200).json({ msg: "liked success" });
-   }  
-  
-else{
-     res.status(400).json({msg:'like updation failed'})
- }
-} catch (error) {
-  res.status(500).json({msg:error.message})
-}}
+ const likePost= async (req, res) => {
+    try {
+      const post = await Posts.find({
+        _id: req.query.postId,
+        likes: req.user.id,
+      });
+    
+      if (post.length > 0) {
+        return res
+          .status(400)
+          .json({ msg: "You have already liked this post" })
+      }
+
+      const like = await Posts.findOneAndUpdate(
+        { _id: req.query.postId },
+        {
+          $push: { likes: req.user.id },
+        },
+        {
+          new: true,
+        }
+      );
+
+      if (!like) {
+        return res.status(400).json({ msg: "Post does not exist." });
+      }
+
+      res.json({ msg: "Post liked successfully." })
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  }
+
 
 
 // @desc    dislike a post
 // @route   PATCH api/v1/post/dislike
 // @access  Private
-const dislikePost=async(req,res)=>{
-  const status= req.body.status
- const post = await Posts.findOne({ _id: req.query.postId });
-try {
-   if (status == 0) {
-     post.likes === 0 ? post.likes === 0 : (post.likes -= 1);
-     post.save();
-     res.status(200).json({ msg: "disliked success" });
-   } else {
-     res.status(400).json({ msg: "api failed" });
-   }
-} catch (error) {
-  res.status(400).json({msg:error.message})
-}}
+const dislikePost=async (req, res) => {
+    try {
+      const like = await Posts.findOneAndUpdate(
+        { _id: req.query.postId },
+        {
+          $pull: { likes: req.user.id },
+        },
+        {
+          new: true,
+        }
+      );
+
+      if (!like) {
+        return res.status(400).json({ msg: "Post does not exist." });
+      }
+
+      res.json({ msg: "Post unliked successfully." });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  }
 
   
 
-
-module.exports ={ createPost,editPost,likePost,deletePost,getPosts,getUserPosts,likePost,dislikePost}
+module.exports={ createPost,editPost,deletePost,getPosts,getUserPosts,likePost,dislikePost}

@@ -93,9 +93,14 @@ const getAllFriendRequestReceive =async(req,res)=>{
   const userId = req.user.id
   console.log(userId)
     try {
-          const requests =await FriendRequest.find({recipient:userId})
+          const requests = await FriendRequest.find({ recipient: userId })
+            .select("-recipient")
+            .populate({
+              path: "requester",
+              select: "name email",
+            });
           console.log(requests)
-          if(requests){
+          if(requests.length>0){
               res.status(200).json(requests);
           }
          else{
@@ -118,11 +123,14 @@ const getAllFriendRequestSent = async (req, res) => {
   try {
     const requests = await FriendRequest.find({
       requester: userId,
-      });
-    console.log(requests);
-    if (requests) {
+      }).select('-requester').populate({
+        path:'recipient',
+        select:'name email'
+      })
+  
+    if (requests.length>0) {
       res.status(200).json(requests);
-    } else {
+    } else  {
       res.status(400).json({ msg: "friendRequest does not exist" });
     }
   } catch (error) {
@@ -139,8 +147,11 @@ const listOfFriends = async(req,res)=>{
  console.log(userId);
  try {
    const requests = await FriendRequest.find({
-    $and:[{$or:[{recipient:userId},{requester:userId}]},{status:'Accept'}]
-   });
+     $and: [
+       { $or: [{ recipient: userId }, { requester: userId }] },
+       { status: "Accept" },
+     ],
+   }).populate("recipient requester","name email")
    console.log(requests);
    if (requests) {
      res.status(200).json(requests);
